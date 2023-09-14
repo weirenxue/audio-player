@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="https://unpkg.com/wavesurfer.js@7"></script>
+  <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
+  <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/timeline.min.js"></script>
+</head>
+
+<body>
+  <div id="waveform"></div>
+
+  <div>
+    <label style="margin-left: 2em">
+      Zoom: <input type="range" min="10" max="1000" value="10" />
+    </label>
+    <input type="file" id="myFile" name="filename" accept=".mp3,.m4a">
+  </div>
+
+  <script>
+    const newWs = () => {
+      // Create an instance of WaveSurfer
+      const ws = WaveSurfer.create({
+        container: '#waveform',
+        waveColor: 'rgb(200, 0, 200)',
+        progressColor: 'rgb(100, 0, 100)',
+      })
+
+      ws.registerPlugin(WaveSurfer.Timeline.create())
+
+      // Initialize the Regions plugin
+      const wsRegions = ws.registerPlugin(WaveSurfer.Regions.create())
+
+      const disableDragSelection = wsRegions.enableDragSelection({
+        color: 'rgba(255, 0, 0, 0.1)',
+      })
+
+      wsRegions.on('region-created', () => {
+        disableDragSelection()
+      })
+
+      wsRegions.on('region-updated', (region) => {
+        region.play()
+      })
+
+      {
+        wsRegions.on('region-in', (region) => {
+        })
+        wsRegions.on('region-out', (region) => {
+          region.play()
+        })
+        wsRegions.on('region-clicked', (region, e) => {
+          e.stopPropagation() // prevent triggering a click on the waveform
+          region.play()
+        })
+        // Reset the active region when the user clicks anywhere in the waveform
+        ws.on('interaction', () => {
+          ws.play()
+        })
+      }
+
+      // Update the zoom level on slider change
+      ws.once('decode', () => {
+        document.querySelector('input[type="range"]').oninput = (e) => {
+          const minPxPerSec = Number(e.target.value)
+          ws.zoom(minPxPerSec)
+        }
+      })
+      
+      ws.once('destroy', () => {
+        document.querySelector('input[type="range"]').value = 10
+      })
+      return ws
+    }
+
+    let ws = null
+
+    // Once the user loads a file in the fileinput, the file should be loaded into waveform
+    document.getElementById("myFile").addEventListener('change', function(e){
+        var file = this.files[0];
+
+        if (file) {
+            var reader = new FileReader();
+            
+            reader.onload = function (evt) {
+                // Create a Blob providing as first argument a typed array with the file buffer
+                var blob = new window.Blob([new Uint8Array(evt.target.result)]);
+
+                if (ws !== null) {
+                  ws.destroy()
+                  ws = null
+                }
+                ws = newWs()
+                // Load the blob into Wavesurfer
+                ws.loadBlob(blob);
+            };
+
+            reader.onerror = function (evt) {
+                console.error("An error ocurred reading the file: ", evt);
+            };
+
+            // Read File as an ArrayBuffer
+            reader.readAsArrayBuffer(file);
+        }
+    }, false);
+
+  </script>
+</body>
+
+</html>
