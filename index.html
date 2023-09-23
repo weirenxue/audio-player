@@ -9,19 +9,30 @@
   <script src="https://unpkg.com/wavesurfer.js@7"></script>
   <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
   <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/timeline.min.js"></script>
+  <style>
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 
 <body>
   <div id="waveform"></div>
 
-  <div>
-    <label style="margin-left: 2em">
-      Zoom: <input type="range" min="10" max="1000" value="10" />
-    </label>
+  <div style="margin-left: 2em">
     <input type="file" id="myFile" name="filename" accept=".mp3,.m4a">
+    <div id="controller" class="hidden">
+      <label>
+        Zoom: <input type="range" min="10" max="1000" value="10" />
+      </label>
+      <button id="play-btn">Play</button>
+      <button id="pause-btn">Pause</button>
+    </div>
   </div>
 
   <script>
+    const playBtn = document.getElementById('play-btn')
+    const pauseBtn = document.getElementById('pause-btn')
     const newWs = () => {
       // Create an instance of WaveSurfer
       const ws = WaveSurfer.create({
@@ -73,6 +84,7 @@
       
       ws.once('destroy', () => {
         document.querySelector('input[type="range"]').value = 10
+        document.getElementById('controller').classList.remove('hidden')
       })
       return ws
     }
@@ -96,7 +108,17 @@
                 }
                 ws = newWs()
                 // Load the blob into Wavesurfer
-                ws.loadBlob(blob);
+                ws.loadBlob(blob).then(() => {
+                  document.getElementById('controller').classList.remove('hidden')
+                  playBtn.addEventListener('click', async () => {
+                    ws.play()
+                  })
+                  document.body.appendChild(ws.media)
+                  pauseBtn.addEventListener('click', () => {
+                    ws.pause()
+                  })
+                  console.log(ws.media.play())
+                })
             };
 
             reader.onerror = function (evt) {
